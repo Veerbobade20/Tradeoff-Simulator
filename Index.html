@@ -1,1 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Tradeoff Simulator: Payoff vs. Invest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: '#4F46E5', // Indigo 600
+                        secondary: '#10B981', // Emerald 500
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom range slider styling for cross-browser consistency */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #4F46E5;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: background 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { background: #4338CA; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #E2E8F0;
+            border-radius: 3px;
+        }
+        input[type=range]:focus { outline: none; }
+        
+        /* Toggle Switch Styling */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #10B981;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #10B981;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen">
 
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-primary/10 p-2 rounded-lg">
+                    <i class="fas fa-balance-scale text-primary text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold text-slate-900">Tradeoff<span class="text-primary">Sim</span></h1>
+            </div>
+            <div class="text-sm text-slate-500 hidden sm:block">
+                Interactive "What-If" Analysis
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-slate-900 mb-2">Debt Payoff vs. Investment</h2>
+            <p class="text-slate-600 max-w-3xl">Adjust the sliders below to see the long-term impact of allocating your monthly budget towards paying off a loan faster versus investing the extra cash. Watch the chart update in real-time.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-6 flex items-center">
+                        <i class="fas fa-sliders-h text-slate-400 mr-2"></i> Scenario Variables
+                    </h3>
+
+                    <!-- Loan Balance -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm font-medium text-slate-700">Loan Balance</label>
+                            <span id="valLoanBalance" class="text-lg font-semibold text-primary">$50,000</span>
+                        </div>
+                        <input type="range" id="loanBalance" min="5000" max="200000" step="1000" value="50000" class="w-full">
+                    </div>
+
+                    <!-- Loan Interest Rate -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm font-medium text-slate-700">Loan Interest Rate</label>
+                            <span id="valLoanRate" class="text-lg font-semibold text-primary">6.5%</span>
+                        </div>
+                        <input type="range" id="loanRate" min="0" max="25" step="0.1" value="6.5" class="w-full">
+                    </div>
+
+                    <!-- Monthly Budget -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm font-medium text-slate-700" title="Total money available per month for both loan payment and investing">Total Monthly Budget <i class="fas fa-info-circle text-slate-400 text-xs ml-1"></i></label>
+                            <span id="valMonthlyBudget" class="text-lg font-semibold text-primary">$1,500</span>
+                        </div>
+                        <input type="range" id="monthlyBudget" min="100" max="5000" step="50" value="1500" class="w-full">
+                        <p class="text-xs text-slate-500 mt-2">Minimum required payment: <span id="valMinPayment" class="font-medium">$567</span>/mo (10-yr term)</p>
+                    </div>
+
+                    <!-- Investment Return Rate -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm font-medium text-slate-700">Expected Investment Return</label>
+                            <span id="valInvestRate" class="text-lg font-semibold text-secondary">8.0%</span>
+                        </div>
+                        <input type="range" id="investRate" min="1" max="15" step="0.1" value="8.0" class="w-full">
+                    </div>
+
+                    <hr class="border-slate-100 my-6">
+
+                    <!-- Initial Savings Toggle & Slider -->
+                    <div class="mb-2">
+                        <div class="flex justify-between items-center mb-4">
+                            <label class="text-sm font-medium text-slate-700">Include Initial Savings?</label>
+                            <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="toggleSavings" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-slate-300 appearance-none cursor-pointer transition-all duration-300 z-10" checked/>
+                                <label for="toggleSavings" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
+                            </div>
+                        </div>
+                        
+                        <div id="savingsContainer" class="transition-opacity duration-300">
+                            <div class="flex justify-between items-end mb-2">
+                                <label class="text-sm font-medium text-slate-500">Initial Savings Amount</label>
+                                <span id="valInitialSavings" class="text-lg font-semibold text-secondary">$10,000</span>
+                            </div>
+                            <input type="range" id="initialSavings" min="0" max="100000" step="1000" value="10000" class="w-full">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 space-y-6">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-l-4 border-l-primary border-slate-100">
+                        <h4 class="text-sm font-semibold text-slate-500 mb-1">Scenario A: Debt First</h4>
+                        <p class="text-xs text-slate-400 mb-3">Pay maximum to loan, then invest.</p>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-xs text-slate-500">Net Worth (Year 20)</p>
+                                <p id="outNetWorthA" class="text-2xl font-bold text-slate-800">$0</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-slate-500">Interest Paid</p>
+                                <p id="outInterestA" class="text-sm font-semibold text-rose-500">$0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-l-4 border-l-secondary border-slate-100">
+                        <h4 class="text-sm font-semibold text-slate-500 mb-1">Scenario B: Invest First</h4>
+                        <p class="text-xs text-slate-400 mb-3">Pay minimum to loan, invest the rest.</p>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-xs text-slate-500">Net Worth (Year 20)</p>
+                                <p id="outNetWorthB" class="text-2xl font-bold text-slate-800">$0</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-slate-500">Interest Paid</p>
+                                <p id="outInterestB" class="text-sm font-semibold text-rose-500">$0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Chart -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative w-full h-[500px]">
+                    <div class="absolute top-4 right-6 bg-slate-100/80 px-3 py-1 rounded-full text-xs font-medium text-slate-600 backdrop-blur-sm z-10 shadow-sm">
+                        20-Year Projection
+                    </div>
+                    <canvas id="simulationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // DOM Elements - Inputs
+        const els = {
+            loanBalance: document.getElementById('loanBalance'),
+            loanRate: document.getElementById('loanRate'),
+            monthlyBudget: document.getElementById('monthlyBudget'),
+            investRate: document.getElementById('investRate'),
+            toggleSavings: document.getElementById('toggleSavings'),
+            initialSavings: document.getElementById('initialSavings'),
+            savingsContainer: document.getElementById('savingsContainer')
+        };
+
+        // DOM Elements - Value Displays
+        const vals = {
+            loanBalance: document.getElementById('valLoanBalance'),
+            loanRate: document.getElementById('valLoanRate'),
+            monthlyBudget: document.getElementById('valMonthlyBudget'),
+            minPayment: document.getElementById('valMinPayment'),
+            investRate: document.getElementById('valInvestRate'),
+            initialSavings: document.getElementById('valInitialSavings')
+        };
+
+        // DOM Elements - Outputs
+        const outs = {
+            netWorthA: document.getElementById('outNetWorthA'),
+            interestA: document.getElementById('outInterestA'),
+            netWorthB: document.getElementById('outNetWorthB'),
+            interestB: document.getElementById('outInterestB')
+        };
+
+        // Chart Instance
+        let chart = null;
+
+        // Formatter utilities
+        const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
+        const formatPercent = (val) => Number(val).toFixed(1) + '%';
+
+        // Add event listeners
+        Object.keys(els).forEach(key => {
+            els[key].addEventListener('input', () => {
+                updateUI();
+                runSimulation();
+            });
+        });
+
+        // Specific listener for toggle visually showing/hiding savings
+        els.toggleSavings.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                els.savingsContainer.style.opacity = '1';
+                els.savingsContainer.style.pointerEvents = 'auto';
+            } else {
+                els.savingsContainer.style.opacity = '0.4';
+                els.savingsContainer.style.pointerEvents = 'none';
+            }
+        });
+
+        // Calculate standard 10-year monthly payment
+        function calculateMinPayment(balance, annualRate) {
+            if (annualRate === 0) return balance / 120; // 120 months = 10 years
+            const r = (annualRate / 100) / 12;
+            const n = 120;
+            return balance * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+        }
+
+        function updateUI() {
+            // Update labels dynamically
+            vals.loanBalance.innerText = formatCurrency(els.loanBalance.value);
+            vals.loanRate.innerText = formatPercent(els.loanRate.value);
+            vals.monthlyBudget.innerText = formatCurrency(els.monthlyBudget.value);
+            vals.investRate.innerText = formatPercent(els.investRate.value);
+            vals.initialSavings.innerText = formatCurrency(els.initialSavings.value);
+
+            // Calculate and show min payment based on current loan vars
+            const minPmt = calculateMinPayment(Number(els.loanBalance.value), Number(els.loanRate.value));
+            vals.minPayment.innerText = formatCurrency(minPmt);
+            
+            // Constrain budget slider visually to min payment if it drops below
+            if (Number(els.monthlyBudget.value) < minPmt) {
+                els.monthlyBudget.value = Math.ceil(minPmt);
+                vals.monthlyBudget.innerText = formatCurrency(els.monthlyBudget.value);
+            }
+        }
+
+        function runSimulation() {
+            // Retrieve values
+            const loanB = Number(els.loanBalance.value);
+            const loanR = Number(els.loanRate.value) / 100 / 12;
+            let budget = Number(els.monthlyBudget.value);
+            const invR = Number(els.investRate.value) / 100 / 12;
+            const hasSavings = els.toggleSavings.checked;
+            const initialInv = hasSavings ? Number(els.initialSavings.value) : 0;
+
+            const minPmt = calculateMinPayment(loanB, Number(els.loanRate.value));
+            if (budget < minPmt) budget = minPmt; // Fail-safe
+
+            const months = 240; // 20 years
+
+            // State variables for Scenario A (Debt First)
+            let balA = loanB;
+            let invA = initialInv;
+            let intA = 0;
+
+            // State variables for Scenario B (Invest First)
+            let balB = loanB;
+            let invB = initialInv;
+            let intB = 0;
+
+            const labels = [];
+            const dataNetA = [];
+            const dataNetB = [];
+
+            for (let m = 0; m <= months; m++) {
+                // Record yearly data points
+                if (m % 12 === 0) {
+                    labels.push(`Year ${m / 12}`);
+                    dataNetA.push(invA - balA);
+                    dataNetB.push(invB - balB);
+                }
+
+                // --- SCENARIO A: Debt First ---
+                if (balA > 0) {
+                    const interest = balA * loanR;
+                    intA += interest;
+                    let payment = budget;
+                    
+                    // If budget is more than enough to pay off remaining loan + interest
+                    if (payment > balA + interest) {
+                        const extraToInvest = payment - (balA + interest);
+                        balA = 0;
+                        invA += extraToInvest; // Put remainder into investments
+                    } else {
+                        const principal = payment - interest;
+                        balA -= principal;
+                    }
+                } else {
+                    // Loan paid off, put entire budget to invest
+                    invA += budget;
+                }
+                // Grow investments
+                invA *= (1 + invR);
+
+                // --- SCENARIO B: Invest First (Pay Minimum to Loan) ---
+                if (balB > 0) {
+                    const interest = balB * loanR;
+                    intB += interest;
+                    let payment = minPmt;
+
+                    // Final payment might be less than minimum payment
+                    if (payment > balB + interest) {
+                        payment = balB + interest;
+                        balB = 0;
+                    } else {
+                        balB -= (payment - interest);
+                    }
+                    // Remaining budget goes to investment
+                    invB += (budget - payment);
+                } else {
+                    invB += budget;
+                }
+                // Grow investments
+                invB *= (1 + invR);
+            }
+
+            // Update Output Cards
+            outs.netWorthA.innerText = formatCurrency(dataNetA[dataNetA.length - 1]);
+            outs.interestA.innerText = formatCurrency(intA);
+            outs.netWorthB.innerText = formatCurrency(dataNetB[dataNetB.length - 1]);
+            outs.interestB.innerText = formatCurrency(intB);
+
+            // Highlight the winner visually
+            if (dataNetA[dataNetA.length - 1] > dataNetB[dataNetB.length - 1]) {
+                outs.netWorthA.classList.replace('text-slate-800', 'text-primary');
+                outs.netWorthB.classList.replace('text-secondary', 'text-slate-800');
+            } else {
+                outs.netWorthB.classList.replace('text-slate-800', 'text-secondary');
+                outs.netWorthA.classList.replace('text-primary', 'text-slate-800');
+            }
+
+            // Update Chart
+            renderChart(labels, dataNetA, dataNetB);
+        }
+
+        function renderChart(labels, dataA, dataB) {
+            const ctx = document.getElementById('simulationChart').getContext('2d');
+
+            if (chart) {
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = dataA;
+                chart.data.datasets[1].data = dataB;
+                chart.update();
+                return;
+            }
+
+            // Gradient setup for smooth lines
+            const gradientA = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientA.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
+            gradientA.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+            const gradientB = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientB.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+            gradientB.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Scenario A (Debt First)',
+                            data: dataA,
+                            borderColor: '#4F46E5',
+                            backgroundColor: gradientA,
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Scenario B (Invest First)',
+                            data: dataB,
+                            borderColor: '#10B981',
+                            backgroundColor: gradientB,
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            align: 'start',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                font: { family: 'Inter', size: 13 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                            titleFont: { family: 'Inter', size: 13 },
+                            bodyFont: { family: 'Inter', size: 13 },
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { font: { family: 'Inter' }, color: '#64748b' }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9', drawBorder: false },
+                            ticks: {
+                                font: { family: 'Inter' },
+                                color: '#64748b',
+                                callback: function(value) {
+                                    if (value >= 1000000) return '$' + (value / 1000000).toFixed(1) + 'M';
+                                    if (value >= 1000) return '$' + (value / 1000).toFixed(0) + 'k';
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+            runSimulation();
+        });
+    </script>
+</body>
+</html>
